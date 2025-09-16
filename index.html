@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,12 +7,12 @@
     <title>업무 규정 Q&A 챗봇</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Pretendard Font CDN Link -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         body {
-            font-family: 'Noto Sans KR', sans-serif;
+            /* 폰트를 Pretendard로 변경하고, 시스템 기본 폰트를 fallback으로 지정 */
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
         }
         /* pdf.js worker 설정 */
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
@@ -133,8 +134,9 @@
          * Calls the Gemini API with the provided context and question.
          */
         async function callGeminiAPI(context, question) {
-            const apiKey = ""; // Canvas environment provides the key
-            const apiUrl = `https://generativelaunguagelabs.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // Canvas environment provides the key
+            // API 모델을 gemini-2.5-pro, v1으로 변경
+            const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const systemPrompt = `당신은 '시행세칙'과 '업무규정' 문서에 대해 모든 것을 알고 있는 사내 규정 전문가입니다. 
             당신의 역할은 사용자의 질문에 대해 주어진 문서 내용에만 근거하여 명확하고 친절하게 답변하는 것입니다.
