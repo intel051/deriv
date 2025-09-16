@@ -96,8 +96,6 @@
 
         // --- PDF File Information (수정된 부분) ---
         const PDF_FILES = [
-            { name: "시행세칙.pdf", url: "https://raw.githubusercontent.com/intel051/derive/main/%EC%8B%9C%ED%96%89%EC%84%B8%EC%B9%99.pdf", fallbackUrl: "https://raw.githubusercontent.com/intel051/derive/master/%EC%8B%9C%ED%96%89%EC%84%B8%EC%B9%99.pdf" },
-            { name: "업무규정.pdf", url: "https://raw.githubusercontent.com/intel051/derive/main/%EC%97%85%EB%AC%B4%EA%B7%9C%EC%A0%95.pdf", fallbackUrl: "https://raw.githubusercontent.com/intel051/derive/master/%EC%97%85%EB%AC%B4%EA%B7%9C%EC%A0%95.pdf" },
             { name: "rule.pdf", url: "https://raw.githubusercontent.com/intel051/derive/main/rule.pdf", fallbackUrl: "https://raw.githubusercontent.com/intel051/derive/master/rule.pdf" },
             { name: "rule2.pdf", url: "https://raw.githubusercontent.com/intel051/derive/main/rule2.pdf", fallbackUrl: "https://raw.githubusercontent.com/intel051/derive/master/rule2.pdf" },
         ];
@@ -138,11 +136,10 @@
          * Calls the Gemini API with the provided context and question.
          */
         async function callGeminiAPI(context, question) {
-            const apiKey = ""; // Canvas environment provides the key
-            // API 모델을 gemini-1.5-pro-latest -> gemini-1.5-pro
-            const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
-            const systemPrompt = `당신은 '시행세칙', '업무규정', 'rule', 'rule2' 문서에 대해 모든 것을 알고 있는 사내 규정 전문가입니다. 
+            const systemPrompt = `당신은 'rule', 'rule2' 문서에 대해 모든 것을 알고 있는 사내 규정 전문가입니다. 
             당신의 역할은 사용자의 질문에 대해 주어진 문서 내용에만 근거하여 명확하고 친절하게 답변하는 것입니다.
             - 답변은 반드시 제공된 문서 텍스트만을 기반으로 해야 합니다.
             - 문서에 없는 내용에 대해서는 절대 추측하거나 외부 정보를 사용하지 마세요.
