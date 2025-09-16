@@ -66,8 +66,8 @@
         // 예: https://raw.githubusercontent.com/username/repo/main/rule.pdf
         // =================================================================================
         const pdfUrls = [
-            'https://raw.githubusercontent.com/mozilla/pdf.js-sample-files/master/helloworld.pdf', // <- 'rule.pdf' 파일 URL로 교체하세요
-            'https://raw.githubusercontent.com/mozilla/pdf.js-sample-files/master/tracemonkey.pdf' // <- 'rule2.pdf' 파일 URL로 교체하세요
+            'https://raw.githubusercontent.com/intel051/cardnews/refs/heads/main/rule.pdf', // <- 'rule.pdf' 파일 URL로 교체하세요
+            'https://raw.githubusercontent.com/intel051/cardnews/refs/heads/main/rule2.pdf' // <- 'rule2.pdf' 파일 URL로 교체하세요
         ];
         // =================================================================================
 
@@ -116,12 +116,12 @@
 
         // Gemini API 호출 함수 (Exponential Backoff 포함)
         async function callGeminiApi(context, query) {
-            const apiKey = ""; // Gemini API 키 (필요 시)
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // Gemini API 키 (필요 시)
+            const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
             const systemPrompt = "You are an AI assistant specialized in searching and summarizing company regulations. Based on the provided text from the company's rule PDFs, answer the user's question concisely and accurately. If the answer is not in the text, state that the information could not be found in the provided documents.";
             
-            const userPrompt = `아래의 사내 규정 텍스트를 바탕으로 다음 질문에 답변해줘.\n\n[질문]:\n${query}\n\n[사내 규정 텍스트]:\n${context}`;
+            const userPrompt = ` 당신은 사내 규정 전문가 입니다. 아래의 사내 규정 텍스트를 바탕으로 답변을 찾아서 가독성 좋게 정리해주세요.\n\n[질문]:\n${query}\n\n[사내 규정 텍스트]:\n${context}`;
 
             const payload = {
                 contents: [{ parts: [{ text: userPrompt }] }],
