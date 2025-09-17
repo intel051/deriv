@@ -99,10 +99,10 @@
         const resultText = document.getElementById('result-text');
         
         // --- URL 변경 ---
-        // cdn.jsdelivr.net 대신 raw.githubusercontent.com을 사용하여 직접 파일을 로드합니다.
+        // cdn.jsdelivr.net 대신 netlify를 사용하여 직접 파일을 로드합니다.
         const defaultDocUrls = [
-            'https://raw.githubusercontent.com/intel051/derive/main/rule1.txt',
-            'https://raw.githubusercontent.com/intel051/derive/main/rule2.txt'
+            'https://shsderiv.netlify.app/rule1.txt',
+            'https://shsderiv.netlify.app/rule2.txt'
         ];
         let fullDocumentText = '';
         
@@ -178,7 +178,7 @@
             } finally {
                 loader.classList.add('hidden');
                 askBtn.disabled = false;
-                askBtn.textContent = 'AI에게 질문하기';
+                askBtn.textContent = '질문하기';
             }
         }
 
