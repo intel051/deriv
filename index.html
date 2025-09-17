@@ -7,27 +7,15 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter & Noto Sans KR -->
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- PDF.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <!-- Marked.js CDN for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
-            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem;
-            box-sizing: border-box;
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
         }
-        /* Loading Spinner Style */
         .loader {
             border: 4px solid #f3f3f3;
             border-radius: 50%;
@@ -40,18 +28,10 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Markdown rendering styles */
-        #result-card ol, #result-card ul {
-            list-style-position: inside;
-            padding-left: 1.5rem;
-        }
+        #result-card ol, #result-card ul { list-style-position: inside; padding-left: 1.5rem; }
         #result-card ol { list-style-type: decimal; }
         #result-card ul { list-style-type: disc; }
-        #result-card h1, #result-card h2, #result-card h3 {
-            font-weight: bold;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
+        #result-card h1, #result-card h2, #result-card h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
         #result-card h1 { font-size: 1.5rem; }
         #result-card h2 { font-size: 1.25rem; }
         #result-card h3 { font-size: 1.1rem; }
@@ -69,7 +49,7 @@
             <p class="text-gray-500 mt-2">업무규정 문서를 기반으로 무엇이든 물어보세요.</p>
         </header>
 
-        <!-- Step 1: PDF Loader (Automatic) -->
+        <!-- Step 1: Document Loader (Automatic) -->
         <div class="space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">1</div>
@@ -78,11 +58,11 @@
             <div class="p-4 bg-gray-50 border rounded-lg">
                 <p class="text-sm text-gray-600">아래 문서들이 자동으로 로딩됩니다:</p>
                 <ul class="list-disc list-inside text-xs text-gray-500 mt-2 space-y-1">
-                    <li>rule1.pdf</li>
-                    <li>rule2.pdf</li>
+                    <li>rule1.txt</li>
+                    <li>rule2.txt</li>
                 </ul>
             </div>
-            <div id="pdf-status" class="text-center text-sm font-medium h-5"></div>
+            <div id="doc-status" class="text-center text-sm font-medium h-5"></div>
         </div>
 
         <!-- Step 2: Q&A Section -->
@@ -111,84 +91,63 @@
     </div>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
-
         // DOM Elements
-        const pdfStatus = document.getElementById('pdf-status');
+        const docStatus = document.getElementById('doc-status');
         const qaSection = document.getElementById('qa-section');
         const queryInput = document.getElementById('query-input');
         const askBtn = document.getElementById('ask-btn');
         const loader = document.getElementById('loader');
         const resultText = document.getElementById('result-text');
         
-        // Default PDF URLs
-        const defaultPdfUrls = [
-            'https://raw.githubusercontent.com/intel051/derive/main/rule1.pdf',
-            'https://raw.githubusercontent.com/intel051/derive/main/rule2.pdf'
+        // Use jsdelivr for stable, CORS-friendly access to GitHub raw files.
+        const defaultDocUrls = [
+            'https://cdn.jsdelivr.net/gh/intel051/derive/main/rule1.txt',
+            'https://cdn.jsdelivr.net/gh/intel051/derive/main/rule2.txt'
         ];
-        let pdfFullText = '';
+        let fullDocumentText = '';
         
-        // Automatically load PDFs when the page is ready
-        window.onload = loadDefaultPdfs;
-
-        // Event listener for asking a question
+        window.onload = loadDefaultDocs;
         askBtn.addEventListener('click', handleAskQuestion);
 
         /**
-         * Fetches and parses a single PDF from a URL.
-         * @param {string} url - The URL of the PDF file.
-         * @returns {Promise<string>} - The extracted text content of the PDF.
+         * Fetches text from a URL.
+         * @param {string} url - The URL of the text file.
+         * @returns {Promise<string>} - The text content.
          */
-        async function getTextFromPdf(url) {
-            // Using a more reliable CORS proxy
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            const loadingTask = pdfjsLib.getDocument(proxyUrl);
-            const pdf = await loadingTask.promise;
-            let textContent = '';
-            
-            const pagePromises = [];
-            for (let i = 1; i <= pdf.numPages; i++) {
-                pagePromises.push(
-                    pdf.getPage(i).then(page => page.getTextContent())
-                );
+        async function getTextFromUrl(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
             }
-            
-            const pageContents = await Promise.all(pagePromises);
-            
-            pageContents.forEach(content => {
-                textContent += content.items.map(s => s.str).join(' ') + '\n\n';
-            });
-            
-            return textContent;
+            return response.text();
         }
         
         /**
-         * Loads the default PDF files, combines their text, and enables the UI.
+         * Loads the default text documents and enables the UI.
          */
-        async function loadDefaultPdfs() {
-            showStatus('기본 업무규정 문서를 불러오는 중입니다...', 'blue');
+        async function loadDefaultDocs() {
+            showStatus('업무규정 문서를 불러오는 중입니다...', 'blue');
             askBtn.disabled = true;
 
             try {
-                // Fetch all PDFs concurrently
-                const textPromises = defaultPdfUrls.map(url => getTextFromPdf(url));
+                const textPromises = defaultDocUrls.map(url => getTextFromUrl(url));
                 const allTexts = await Promise.all(textPromises);
 
-                pdfFullText = allTexts.join('\n\n--- (문서 구분) ---\n\n'); 
+                fullDocumentText = allTexts.join('\n\n--- (문서 구분) ---\n\n'); 
                 
                 showStatus('✅ 문서 로딩 완료! 질문을 입력하세요.', 'green');
                 qaSection.classList.remove('opacity-50', 'pointer-events-none');
                 askBtn.disabled = false;
                 
             } catch (error) {
-                console.error('Error loading default PDFs:', error);
-                showStatus('❌ 기본 문서를 불러오는 데 실패했습니다. 페이지를 새로고침 해주세요.', 'red');
-                pdfFullText = '';
+                console.error('Error loading default documents:', error);
+                showStatus('❌ 문서를 불러오는 데 실패했습니다. GitHub에 txt 파일이 있는지 확인해주세요.', 'red');
+                fullDocumentText = '';
             }
         }
 
         /**
-         * Sends the user's query and PDF content to the Gemini API.
+         * Sends the user's query and document content to the Gemini API.
          */
         async function handleAskQuestion() {
             const userQuery = queryInput.value.trim();
@@ -196,8 +155,8 @@
                 resultText.innerHTML = '<p class="text-red-500">질문을 입력해주세요.</p>';
                 return;
             }
-            if (!pdfFullText) {
-                resultText.innerHTML = '<p class="text-red-500">PDF 문서가 아직 로딩되지 않았습니다.</p>';
+            if (!fullDocumentText) {
+                resultText.innerHTML = '<p class="text-red-500">문서가 로딩되지 않았습니다.</p>';
                 return;
             }
 
@@ -207,7 +166,7 @@
             askBtn.textContent = '답변 생성 중...';
 
             const systemPrompt = "당신은 사내 업무규정 전문가입니다. 제공된 2개의 업무규정 문서를 바탕으로 사용자의 질문에 대해 명확하고 간결하게 답변해야 합니다. 답변은 항상 한국어로 작성해주세요. 문서에 명시되지 않은 내용에 대해서는 '문서에서 해당 내용을 찾을 수 없습니다.'라고 답변하세요.";
-            const fullPrompt = `[업무 규정 문서]\n${pdfFullText}\n\n[사용자 질문]\n${userQuery}`;
+            const fullPrompt = `[업무 규정 문서]\n${fullDocumentText}\n\n[사용자 질문]\n${userQuery}`;
 
             try {
                 const generatedText = await callGeminiApi(fullPrompt, systemPrompt);
@@ -226,8 +185,8 @@
          * Makes a POST request to the Gemini API with exponential backoff.
          */
         async function callGeminiApi(prompt, systemInstruction) {
-            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
@@ -270,13 +229,13 @@
          * Displays a status message to the user.
          */
         function showStatus(message, color) {
-            pdfStatus.textContent = message;
+            docStatus.textContent = message;
             const colorClasses = {
                 red: 'text-red-500',
-                green: 'text-green-500',
+                green: 'text-green-600',
                 blue: 'text-blue-600'
             };
-            pdfStatus.className = `text-center text-sm font-medium h-5 ${colorClasses[color] || ''}`;
+            docStatus.className = `text-center text-sm font-medium h-5 ${colorClasses[color] || ''}`;
         }
     </script>
 </body>
