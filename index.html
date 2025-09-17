@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>업무규정 AI 비서</title>
+    <title>업무규정 비서</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter & Noto Sans KR -->
@@ -216,7 +216,7 @@
          * Makes a POST request to the Gemini API with exponential backoff.
          */
         async function callGeminiApi(prompt, systemInstruction) {
-            const apiKey = "";
+            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             
             const payload = {
