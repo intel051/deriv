@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>업무규정 AI 비서</title>
+    <title>업무규정 AI 비서 (검색 기능)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Pretendard Font CDN -->
@@ -20,6 +20,8 @@
         #result-card p { margin-bottom: 0.75rem; } #result-card a { color: #3b82f6; text-decoration: underline; }
         #result-card pre { background-color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; overflow-x: auto;}
         #result-card code { font-family: 'Courier New', Courier, monospace; }
+        .found-rule { background-color: #eef2ff; border-left: 4px solid #4f46e5; padding: 0.75rem; margin-bottom: 0.75rem; border-radius: 0.25rem; }
+        .found-rule-title { font-weight: bold; color: #312e81; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -28,30 +30,29 @@
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800">업무규정 AI 비서</h1>
             <p class="text-gray-500 mt-2">업무규정 문서를 기반으로 무엇이든 물어보세요.</p>
         </header>
+
         <div class="space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">1</div>
                 <h2 class="text-xl font-semibold text-gray-700">문서 로딩 상태</h2>
             </div>
             <div class="p-4 bg-gray-50 border rounded-lg">
-                <p class="text-sm text-gray-600">아래 문서들이 자동으로 로딩됩니다:</p>
-                <ul id="doc-list" class="list-disc list-inside text-xs text-gray-500 mt-2 space-y-1">
-                     <li>rule1.txt</li>
-                     <li>rule2.txt</li>
-                </ul>
+                <p class="text-sm text-gray-600">업무규정 DB 파일(rules.json)을 로딩합니다.</p>
             </div>
             <div id="doc-status" class="text-center text-sm font-medium h-5"></div>
         </div>
+
         <div id="qa-section" class="space-y-4 opacity-50 pointer-events-none transition-opacity duration-500">
              <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">2</div>
                 <h2 class="text-xl font-semibold text-gray-700">질문하기</h2>
             </div>
-            <textarea id="query-input" rows="4" placeholder="예시) 재택근무 규정에 대해 알려주세요." class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
+            <textarea id="query-input" rows="4" placeholder="예시) 선물거래의 정의에 대해 알려주세요." class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
             <button id="ask-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
                 AI에게 질문하기
             </button>
         </div>
+
         <div class="space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">3</div>
@@ -59,55 +60,41 @@
             </div>
             <div id="result-card" class="w-full min-h-[100px] p-4 bg-gray-50 border border-gray-200 rounded-lg">
                 <div id="loader" class="hidden mx-auto loader"></div>
+                <div id="retrieved-context" class="mb-4"></div>
                 <div id="result-text" class="text-gray-700 leading-relaxed">AI의 답변이 여기에 표시됩니다.</div>
             </div>
         </div>
     </div>
+
     <script>
-        // DOM Elements
         const docStatus = document.getElementById('doc-status');
         const qaSection = document.getElementById('qa-section');
         const queryInput = document.getElementById('query-input');
         const askBtn = document.getElementById('ask-btn');
         const loader = document.getElementById('loader');
+        const retrievedContext = document.getElementById('retrieved-context');
         const resultText = document.getElementById('result-text');
         
-        // 불러올 로컬 TXT 파일 목록
-        const docUrls = ['./rule1.txt', './rule2.txt'];
-        
-        let fullDocumentText = '';
+        const jsonUrl = './rules.json';
+        let allRules = [];
         
         window.onload = loadDefaultDocs;
         askBtn.addEventListener('click', handleAskQuestion);
 
-        /**
-         * Loads multiple local text files and combines them.
-         */
         async function loadDefaultDocs() {
-            showStatus('업무규정 문서를 불러오는 중입니다...', 'blue');
+            showStatus('업무규정 DB를 불러오는 중입니다...', 'blue');
             askBtn.disabled = true;
-
             try {
-                const textPromises = docUrls.map(url => 
-                    fetch(`${url}?t=${new Date().getTime()}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Failed to fetch ${url}`);
-                            }
-                            return response.text();
-                        })
-                );
-
-                const allTexts = await Promise.all(textPromises);
-                fullDocumentText = allTexts.join('\n\n--- (문서 구분) ---\n\n'); 
+                const response = await fetch(`${jsonUrl}?t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error(`Failed to fetch ${jsonUrl}`);
+                allRules = await response.json();
                 
-                showStatus('✅ 문서 로딩 완료! 질문을 입력하세요.', 'green');
+                showStatus(`✅ DB 로딩 완료! 총 ${allRules.length}개 조항이 준비되었습니다.`, 'green');
                 qaSection.classList.remove('opacity-50', 'pointer-events-none');
                 askBtn.disabled = false;
-                
             } catch (error) {
-                console.error('Error loading default documents:', error);
-                showStatus(`❌ 문서 로딩 실패. 파일 경로를 확인하고 'Live Server'로 실행했는지 확인해주세요.`, 'red');
+                console.error('Error loading documents:', error);
+                showStatus(`❌ DB 로딩 실패. 'rules.json' 파일이 있는지, 'Live Server'로 실행했는지 확인해주세요.`, 'red');
             }
         }
         
@@ -117,24 +104,59 @@
                 resultText.innerHTML = '<p class="text-red-500">질문을 입력해주세요.</p>';
                 return;
             }
-            if (!fullDocumentText) {
-                resultText.innerHTML = '<p class="text-red-500">문서가 로딩되지 않았습니다. 페이지를 새로고침 해주세요.</p>';
+            if (allRules.length === 0) {
+                resultText.innerHTML = '<p class="text-red-500">DB가 로딩되지 않았습니다.</p>';
                 return;
             }
 
             loader.classList.remove('hidden');
             resultText.innerHTML = '';
+            retrievedContext.innerHTML = '';
             askBtn.disabled = true;
             askBtn.textContent = '답변 생성 중...';
 
-            const systemPrompt = "당신은 사내 업무규정 전문가입니다. 제공된 업무규정 문서를 바탕으로 사용자의 질문에 대해 명확하고 간결하게, 알아보기 편하게 정리해서 답변해야 합니다. 답변은 항상 한국어로 작성해주세요. 문서에 명시되지 않은 내용에 대해서는 '문서에서 해당 내용을 찾을 수 없습니다.'라고 답변하세요.";
-            const fullPrompt = `[업무 규정 문서]\n${fullDocumentText}\n\n[사용자 질문]\n${userQuery}`;
+            const queryWords = userQuery.toLowerCase().split(/\s+/).filter(word => word.length > 1);
+            const searchResults = allRules.map(rule => {
+                let score = 0;
+                const content = `${rule.document} ${rule.category} ${rule.article} ${rule.content} ${rule.keywords.join(' ')}`.toLowerCase();
+                
+                queryWords.forEach(word => {
+                    if (content.includes(word)) {
+                        score++;
+                        if (rule.article.toLowerCase().includes(word) || rule.keywords.join(' ').toLowerCase().includes(word)) {
+                            score += 2; 
+                        }
+                    }
+                });
+                return { rule, score };
+            })
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+
+            let relevantText = "관련된 규정을 찾지 못했습니다.";
+            if (searchResults.length > 0) {
+                relevantText = searchResults.map(item => 
+                    `문서: ${item.rule.document}\n카테고리: ${item.rule.category}\n조항: ${item.rule.article}\n내용: ${item.rule.content}`
+                ).join('\n\n---\n\n');
+                
+                retrievedContext.innerHTML = searchResults.map(item => `
+                    <div class="found-rule">
+                        <p class="found-rule-title">🔎 근거 조항: ${item.rule.document} - ${item.rule.article}</p>
+                    </div>
+                `).join('');
+            } else {
+                 retrievedContext.innerHTML = `<p class="text-sm text-yellow-600">질문과 직접 관련된 조항을 찾지 못했습니다. 전체 내용 기반으로 답변을 시도합니다.</p>`;
+                 relevantText = allRules.slice(0, 10).map(rule => rule.content).join('\n'); 
+            }
+
+            const systemPrompt = "당신은 사내 업무규정 전문가입니다. 아래에 [관련 규정 본문]이 제공됩니다. 이 내용을 바탕으로 사용자의 [질문]에 대해 명확하고 간결하게, 알아보기 쉽게 정리해서 답변해야 합니다. 답변은 항상 한국어로 작성해주세요. 주어진 내용으로 답을 알 수 없다면 '제공된 문서 내용만으로는 답변을 찾기 어렵습니다.'라고 답변하세요.";
+            const fullPrompt = `[관련 규정 본문]\n${relevantText}\n\n[질문]\n${userQuery}`;
 
             try {
                 const generatedText = await callGeminiApi(fullPrompt, systemPrompt);
                 resultText.innerHTML = marked.parse(generatedText);
             } catch (error) {
-                // 이 에러 메시지가 보이면 F12를 눌러 Console 창을 확인해야 합니다.
                 resultText.innerHTML = `<p class="text-red-500">API 호출 중 오류가 발생했습니다. (자세한 내용은 F12 Console 창을 확인하세요)</p>`;
             } finally {
                 loader.classList.add('hidden');
@@ -144,16 +166,15 @@
         }
 
         async function callGeminiApi(prompt, systemInstruction) {
-            // ✅ 중요: "YOUR_API_KEY" 부분을 Google AI Studio에서 발급받은 실제 API 키로 교체해주세요.
-            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; 
+            // ✅ 중요: 다른 프로젝트와 공유되지 않는, 이 프로젝트만을 위한 '새로운' API 키를 입력해주세요.
+            const apiKey = "AIzaSyAlZWFZAJ3NqkXYM-izZULPuWD5eYIYh6I"; 
             
-            // ✅ 안정적인 공식 모델 이름으로 수정했습니다.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: { temperature: 0.5, topK: 1, topP: 1, maxOutputTokens: 8192 } // 답변 길이를 늘렸습니다.
+                generationConfig: { temperature: 0.3, topK: 1, topP: 1, maxOutputTokens: 8192 }
             };
 
             let retries = 3;
@@ -185,14 +206,13 @@
                         delay *= 2; 
                     } else {
                         const errorBody = await response.json();
-                        // ✅ 진짜 원인이 여기에 찍힙니다.
                         console.error('💥 복구 불가능한 API 에러:', errorBody); 
                         throw new Error(`API error: ${errorBody.error?.message || response.status}`);
                     }
                 } catch (error) {
                     console.error(`💥 API 호출 시도 ${i + 1}회 실패:`, error);
                     if (i === retries - 1) {
-                        throw error; // 모든 재시도 실패 후 최종적으로 에러를 던짐
+                        throw error;
                     }
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2;
@@ -203,11 +223,7 @@
 
         function showStatus(message, color) {
             docStatus.textContent = message;
-            const colorClasses = {
-                red: 'text-red-500',
-                green: 'text-green-600',
-                blue: 'text-blue-600'
-            };
+            const colorClasses = { red: 'text-red-500', green: 'text-green-600', blue: 'text-blue-600' };
             docStatus.className = `text-center text-sm font-medium h-5 ${colorClasses[color] || ''}`;
         }
     </script>
