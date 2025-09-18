@@ -28,7 +28,6 @@
             <h1 class="text-3xl md:text-4xl font-bold text-gray-800">업무규정 AI 비서</h1>
             <p class="text-gray-500 mt-2">업무규정 문서를 기반으로 무엇이든 물어보세요.</p>
         </header>
-
         <div class="space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">1</div>
@@ -43,7 +42,6 @@
             </div>
             <div id="doc-status" class="text-center text-sm font-medium h-5"></div>
         </div>
-
         <div id="qa-section" class="space-y-4 opacity-50 pointer-events-none transition-opacity duration-500">
              <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">2</div>
@@ -54,7 +52,6 @@
                 AI에게 질문하기
             </button>
         </div>
-
         <div class="space-y-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">3</div>
@@ -66,7 +63,6 @@
             </div>
         </div>
     </div>
-
     <script>
         // DOM Elements
         const docStatus = document.getElementById('doc-status');
@@ -92,7 +88,6 @@
             askBtn.disabled = true;
 
             try {
-                // 1. 각 URL에 대해 fetch 요청을 생성하고, 응답을 text로 변환하는 프로미스 배열을 만듭니다.
                 const textPromises = docUrls.map(url => 
                     fetch(`${url}?t=${new Date().getTime()}`)
                         .then(response => {
@@ -103,10 +98,7 @@
                         })
                 );
 
-                // 2. Promise.all을 사용해 모든 파일이 로드될 때까지 기다립니다.
                 const allTexts = await Promise.all(textPromises);
-
-                // 3. 불러온 모든 텍스트를 하나의 문자열로 합칩니다.
                 fullDocumentText = allTexts.join('\n\n--- (문서 구분) ---\n\n'); 
                 
                 showStatus('✅ 문서 로딩 완료! 질문을 입력하세요.', 'green');
@@ -116,11 +108,9 @@
             } catch (error) {
                 console.error('Error loading default documents:', error);
                 showStatus(`❌ 문서 로딩 실패. 파일 경로를 확인하고 'Live Server'로 실행했는지 확인해주세요.`, 'red');
-                fullDocumentText = '';
             }
         }
         
-        // handleAskQuestion, callGeminiApi, showStatus 함수는 이전과 동일합니다.
         async function handleAskQuestion() {
             const userQuery = queryInput.value.trim();
             if (!userQuery) {
@@ -144,8 +134,8 @@
                 const generatedText = await callGeminiApi(fullPrompt, systemPrompt);
                 resultText.innerHTML = marked.parse(generatedText);
             } catch (error) {
-                console.error('Error calling Gemini API:', error);
-                resultText.innerHTML = '<p class="text-red-500">API 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</p>';
+                // 이 에러 메시지가 보이면 F12를 눌러 Console 창을 확인해야 합니다.
+                resultText.innerHTML = `<p class="text-red-500">API 호출 중 오류가 발생했습니다. (자세한 내용은 F12 Console 창을 확인하세요)</p>`;
             } finally {
                 loader.classList.add('hidden');
                 askBtn.disabled = false;
@@ -154,16 +144,21 @@
         }
 
         async function callGeminiApi(prompt, systemInstruction) {
-            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // 여기에 실제 API 키를 입력하세요.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            // ✅ 중요: "YOUR_API_KEY" 부분을 Google AI Studio에서 발급받은 실제 API 키로 교체해주세요.
+            const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; 
+            
+            // ✅ 안정적인 공식 모델 이름으로 수정했습니다.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
             
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: { temperature: 0.5, topK: 1, topP: 1, maxOutputTokens: 2048 }
+                generationConfig: { temperature: 0.5, topK: 1, topP: 1, maxOutputTokens: 8192 } // 답변 길이를 늘렸습니다.
             };
 
-            let retries = 3, delay = 1000;
+            let retries = 3;
+            let delay = 1000;
+
             for (let i = 0; i < retries; i++) {
                 try {
                     const response = await fetch(apiUrl, {
@@ -176,22 +171,34 @@
                         const result = await response.json();
                         const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) return text;
-                        throw new Error('Invalid API response structure');
+                        
+                        console.warn('API 응답은 정상이지만 내용이 비어있습니다. Safety/Filter 문제일 수 있습니다.', result);
+                        if (result.candidates && result.candidates[0].finishReason === 'SAFETY') {
+                            return "답변 생성 중 안전 필터에 의해 차단되었습니다. 다른 질문으로 시도해주세요.";
+                        }
+                        throw new Error('API 응답 내용이 비어있습니다.');
                     }
+                    
                     if (response.status === 429 || response.status >= 500) {
+                        console.warn(`API 요청 실패 (상태 코드: ${response.status}). ${delay}ms 후 재시도합니다...`);
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2;
+                        delay *= 2; 
                     } else {
                         const errorBody = await response.json();
+                        // ✅ 진짜 원인이 여기에 찍힙니다.
+                        console.error('💥 복구 불가능한 API 에러:', errorBody); 
                         throw new Error(`API error: ${errorBody.error?.message || response.status}`);
                     }
                 } catch (error) {
-                    if (i === retries - 1) throw error;
+                    console.error(`💥 API 호출 시도 ${i + 1}회 실패:`, error);
+                    if (i === retries - 1) {
+                        throw error; // 모든 재시도 실패 후 최종적으로 에러를 던짐
+                    }
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2;
                 }
             }
-            throw new Error('API request failed after retries.');
+            throw new Error('API 요청이 모든 재시도 후에도 실패했습니다.');
         }
 
         function showStatus(message, color) {
@@ -206,5 +213,4 @@
     </script>
 </body>
 </html>
-
 
