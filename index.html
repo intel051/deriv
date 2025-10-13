@@ -3,206 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>업무규정 AI 비서 (TXT 기반)</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Pretendard Font CDN -->
+    <title>파생상품 법규 검색 및 요약</title>
+    
+    <!-- Pretendard 폰트 로드: 가장 안정적인 CDN 링크 방식으로 교체 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <!-- Marked.js CDN for Markdown rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        body { font-family: 'Pretendard', sans-serif; }
-        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #result-card ol, #result-card ul { list-style-position: inside; padding-left: 1.5rem; }
-        #result-card h1, #result-card h2, #result-card h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
-        #result-card h1 { font-size: 1.5rem; } #result-card h2 { font-size: 1.25rem; } #result-card h3 { font-size: 1.1rem; }
-        #result-card p { margin-bottom: 0.75rem; } #result-card a { color: #3b82f6; text-decoration: underline; }
-        #result-card pre { background-color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; overflow-x: auto;}
-        #result-card code { font-family: 'Courier New', Courier, monospace; }
+        /* Pretendard 폰트 전체 적용 및 기본 스타일 설정 */
+        body {
+            font-family: 'Pretendard', sans-serif; /* 폰트 적용 */
+            background-color: #f7f9fb;
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6; /* 가독성을 위해 line-height 추가 */
+        }
+
+        /* Tailwind 커스터마이징 (기존 유지) */
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 1rem;
+            width: 100%;
+        }
+        .loading-animation {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Markdown 스타일링 */
+        .markdown-output {
+            line-height: 1.8;
+        }
+        .markdown-output h1, .markdown-output h2, .markdown-output h3 {
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-output p {
+            margin-bottom: 1rem;
+        }
+        .markdown-output ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .markdown-output blockquote {
+            border-left: 4px solid #9ca3af;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #4b5563;
+            background-color: #f3f4f6;
+            border-radius: 4px;
+        }
+        .file-citation {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            margin-right: 0.5rem;
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8 space-y-8">
-        <header class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">업무규정 AI 비서</h1>
-            <p class="text-gray-500 mt-2">업무규정 문서를 기반으로 무엇이든 물어보세요.</p>
+<body class="selection:bg-blue-100">
+
+    <div class="container flex-grow">
+        <header class="py-6 border-b border-gray-200 mb-6">
+            <h1 class="text-3xl font-black text-gray-800">파생상품 법규 키워드 검색기 🔍</h1>
+            <p class="mt-1 text-gray-500">업로드된 "파생상품시장 업무규정" 및 "시행세칙"에서 키워드를 검색하고 내용을 정리해 드려요.</p>
         </header>
 
-        <div class="space-y-4">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">1</div>
-                <h2 class="text-xl font-semibold text-gray-700">문서 로딩 상태</h2>
+        <main>
+            <div class="search-section bg-white p-6 rounded-xl shadow-lg mb-8">
+                <label for="keywordInput" class="block text-lg font-bold mb-2">검색 키워드 입력:</label>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                    <input type="text" id="keywordInput" placeholder="예: 최종거래일, 거래증거금, 옵션거래"
+                           class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                           aria-label="검색 키워드 입력 필드">
+                    <button id="searchButton"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 shadow-md flex items-center justify-center disabled:opacity-50"
+                            aria-label="검색 시작 버튼">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        검색 시작
+                    </button>
+                </div>
             </div>
-            <div class="p-4 bg-gray-50 border rounded-lg">
-                <p class="text-sm text-gray-600">아래 문서들이 자동으로 로딩됩니다:</p>
-                <ul id="doc-list" class="list-disc list-inside text-xs text-gray-500 mt-2 space-y-1">
-                     <li>rule1.txt</li>
-                     <li>rule2.txt</li>
-                </ul>
-            </div>
-            <div id="doc-status" class="text-center text-sm font-medium h-5"></div>
-        </div>
 
-        <div id="qa-section" class="space-y-4 opacity-50 pointer-events-none transition-opacity duration-500">
-             <div class="flex items-center space-x-3">
-                <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">2</div>
-                <h2 class="text-xl font-semibold text-gray-700">질문하기</h2>
+            <!-- 검색 결과 요약 섹션 -->
+            <div class="result-section">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">검색 결과 요약</h2>
+                <div id="resultOutput" class="bg-white p-6 rounded-xl shadow-lg min-h-48">
+                    <p class="text-gray-500">검색할 키워드를 입력하고 "검색 시작" 버튼을 눌러주세요.</p>
+                </div>
             </div>
-            <textarea id="query-input" rows="4" placeholder="예시) 재택근무 규정에 대해 알려주세요." class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
-            <button id="ask-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">
-                AI에게 질문하기
-            </button>
-        </div>
-
-        <div class="space-y-4">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">3</div>
-                <h2 class="text-xl font-semibold text-gray-700">답변</h2>
+            
+            <!-- LLM 기반 Q&A 섹션 -->
+            <div class="qna-section mt-10 p-6 rounded-xl shadow-lg bg-yellow-50 border border-yellow-200">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    법규 전문가에게 질문하기 💬
+                </h2>
+                <label for="qnaInput" class="block text-md font-medium text-gray-700 mb-2">궁금한 내용을 직접 질문해 보세요.</label>
+                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                    <input type="text" id="qnaInput" placeholder="예: 거래증거금의 산출 방법과 목적을 비교 설명해 줘"
+                           class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition duration-150"
+                           aria-label="궁금한 내용 입력 필드">
+                    <button id="qnaButton"
+                            class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 shadow-md flex items-center justify-center disabled:opacity-50"
+                            aria-label="질문하기 버튼">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.228a4.242 4.242 0 015.996 0M12 16h.01M12 21a9 9 0 110-18 9 9 0 010 18z"></path></svg>
+                        질문하기
+                    </button>
+                </div>
+                <div id="qnaOutput" class="mt-4 p-4 bg-white rounded-lg shadow-inner min-h-12 text-gray-700">
+                    <p class="text-gray-500 text-sm">질문을 입력하면 Gemini 모델이 문서를 기반으로 답변을 생성합니다.</p>
+                </div>
             </div>
-            <div id="result-card" class="w-full min-h-[100px] p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <div id="loader" class="hidden mx-auto loader"></div>
-                <div id="result-text" class="text-gray-700 leading-relaxed">AI의 답변이 여기에 표시됩니다.</div>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <script>
-        const docStatus = document.getElementById('doc-status');
-        const qaSection = document.getElementById('qa-section');
-        const queryInput = document.getElementById('query-input');
-        const askBtn = document.getElementById('ask-btn');
-        const loader = document.getElementById('loader');
-        const resultText = document.getElementById('result-text');
-        
-        // 불러올 로컬 TXT 파일 목록으로 변경
-        const docUrls = ['./rule1.txt', './rule2.txt'];
-        
-        let fullDocumentText = '';
-        
-        window.onload = loadDefaultDocs;
-        askBtn.addEventListener('click', handleAskQuestion);
+    <footer class="py-4 mt-8 border-t border-gray-200">
+        <div class="container text-center text-sm text-gray-500">
+            <p>Powered by Gemini API (Google Search Grounding)</p>
+        </div>
+    </footer>
 
-        // 여러 TXT 파일을 불러오도록 함수 수정
-        async function loadDefaultDocs() {
-            showStatus('업무규정 문서를 불러오는 중입니다...', 'blue');
-            askBtn.disabled = true;
-            try {
-                const textPromises = docUrls.map(url => 
-                    fetch(`${url}?t=${new Date().getTime()}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-                            return response.text();
-                        })
-                );
-                const allTexts = await Promise.all(textPromises);
-                fullDocumentText = allTexts.join('\n\n--- (문서 구분) ---\n\n'); 
-                
-                showStatus('✅ 문서 로딩 완료! 질문을 입력하세요.', 'green');
-                qaSection.classList.remove('opacity-50', 'pointer-events-none');
-                askBtn.disabled = false;
-            } catch (error) {
-                console.error('Error loading documents:', error);
-                showStatus(`❌ 문서 로딩 실패. 'rule1.txt', 'rule2.txt' 파일이 있는지, 'Live Server'로 실행했는지 확인해주세요.`, 'red');
-            }
-        }
+    <script type="module">
+        // Gemini API 호출을 위한 기본 설정
+        const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // Canvas 환경에서 자동 주입
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        // DOM 요소 정의
+        const keywordInput = document.getElementById('keywordInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultOutput = document.getElementById('resultOutput');
+        // const detailExplanationArea = document.getElementById('detailExplanationArea'); // REMOVED
+        const qnaInput = document.getElementById('qnaInput');
+        const qnaButton = document.getElementById('qnaButton');
+        const qnaOutput = document.getElementById('qnaOutput');
+
+        // LLM 시스템 프롬프트 정의 (문서 검색 및 요약)
+        const SEARCH_SYSTEM_PROMPT = `당신은 한국 파생상품 시장 전문가입니다. 사용자가 입력한 키워드를 바탕으로 제공된 첨부 파일(파생상품시장 업무규정, 파생상품시장 업무규정 시행세칙)을 검색하여 내용을 찾아주세요.
+
+1. 검색 결과를 바탕으로 답변을 구성할 때는 반드시 첨부 파일의 내용을 활용하여 정확하게 답변해야 합니다.
+2. 답변은 반드시 한국어 토스 문체로 친절하게 작성해 주세요.
+3. 답변은 다음의 마크다운 형식으로 구성해 주세요:
+- 첫 번째 섹션: 키워드에 대한 "간결한 요약" (1~2줄).
+- 두 번째 섹션: "주요 내용" 제목 하에, 관련 조항이나 정의를 구체적으로 인용하거나 요약해 주세요.
+- 모든 답변에는 참조 파일의 출처(파일명과 관련 내용)를 명확하게 포함해야 합니다.
+
+예시 답변 형식:
+"키워드"에 대한 요약 내용이에요. 
+"파생상품시장 업무규정" 및 "시행세칙"에 따르면, 이 키워드는...
+
+## 주요 내용
+
+* **관련 정의 또는 조항**: [내용 설명 및 관련 파일 인용]
+* **세부 사항**: [내용 설명 및 관련 파일 인용]
+* **적용 예시**: [내용 설명 및 관련 파일 인용]
+`;
         
-        // 검색 로직을 제거하고 전체 텍스트를 보내는 방식으로 복원
-        async function handleAskQuestion() {
-            const userQuery = queryInput.value.trim();
-            if (!userQuery) {
-                resultText.innerHTML = '<p class="text-red-500">질문을 입력해주세요.</p>';
-                return;
-            }
-            if (!fullDocumentText) {
-                resultText.innerHTML = '<p class="text-red-500">문서가 로딩되지 않았습니다.</p>';
-                return;
-            }
+        // REMOVED DETAIL_EXPLAIN_PROMPT
 
-            loader.classList.remove('hidden');
-            resultText.innerHTML = '';
-            // 검색 결과 UI를 사용하지 않으므로 관련 코드 제거
-            // retrievedContext.innerHTML = '';
-            askBtn.disabled = true;
-            askBtn.textContent = '답변 생성 중...';
+        // LLM 시스템 프롬프트 정의 (Q&A)
+        const QNA_SYSTEM_PROMPT = `당신은 한국 파생상품 법규에 대한 질의응답 전문가입니다. 사용자의 질문을 바탕으로 제공된 첨부 파일(파생상품시장 업무규정, 파생상품시장 업무규정 시행세칙)을 검색하여 질문에 가장 정확하게 답변해야 합니다. 답변은 반드시 첨부 파일의 내용을 기반으로 작성해 주세요. 답변은 한국어 토스 문체로 친절하게 작성하고, 답변 말미에 관련 조항을 언급해 주세요.`;
 
-            const systemPrompt = "당신은 사내 업무규정 전문가입니다. 아래에 [업무 규정 문서]가 제공됩니다. 이 내용을 바탕으로 사용자의 [질문]에 대해 명확하고 간결하게, 알아보기 쉽게 정리해서 답변해야 합니다. 답변은 항상 한국어로 작성해주세요. 주어진 내용으로 답을 알 수 없다면 '문서에서 해당 내용을 찾을 수 없습니다.'라고 답변하세요.";
-            const fullPrompt = `[업무 규정 문서]\n${fullDocumentText}\n\n[질문]\n${userQuery}`;
 
-            try {
-                const generatedText = await callGeminiApi(fullPrompt, systemPrompt);
-                resultText.innerHTML = marked.parse(generatedText);
-            } catch (error) {
-                resultText.innerHTML = `<p class="text-red-500">API 호출 중 오류가 발생했습니다. (자세한 내용은 F12 Console 창을 확인하세요)</p>`;
-            } finally {
-                loader.classList.add('hidden');
-                askBtn.disabled = false;
-                askBtn.textContent = 'AI에게 질문하기';
+        // Markdown 텍스트를 HTML로 변환하는 함수 (간단 구현)
+        function renderMarkdown(markdownText) {
+            let html = markdownText
+                .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-4 mb-2">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-6 mb-3 border-b pb-1">$1</h2>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/<br>\* /g, '<br><li>')
+                .replace(/<br><br><li>/g, '<ul><li>')
+                .replace(/<\/li><br><li>/g, '</li><li>')
+                .replace(/<\/li><br>$/g, '</li></ul>')
+                .replace(/<ul><li>(.*?)<\/ul><li>/g, '<ul><li>$1</li></ul>');
+
+            if (html.startsWith('<br>')) {
+                html = html.substring(4);
             }
+            return html;
         }
 
-        async function callGeminiApi(prompt, systemInstruction) {
-            // ✅ 중요: "YOUR_API_KEY" 부분을 실제 API 키로 교체해주세요.
-            const apiKey = "AIzaSyC3i-zZsFt_hB8OXzCa9Wd2tONVP1AuDKI"; 
-            
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: { temperature: 0.3, topK: 1, topP: 1, maxOutputTokens: 8192 }
-            };
-
-            let retries = 3;
-            let delay = 1000;
-
-            for (let i = 0; i < retries; i++) {
+        // 지연 처리 및 재시도를 위한 Exponential Backoff 로직
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
                 try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (text) return text;
-                        
-                        console.warn('API 응답은 정상이지만 내용이 비어있습니다. Safety/Filter 문제일 수 있습니다.', result);
-                        if (result.candidates && result.candidates[0].finishReason === 'SAFETY') {
-                            return "답변 생성 중 안전 필터에 의해 차단되었습니다. 다른 질문으로 시도해주세요.";
-                        }
-                        throw new Error('API 응답 내용이 비어있습니다.');
-                    }
-                    
-                    if (response.status === 429 || response.status >= 500) {
-                        console.warn(`API 요청 실패 (상태 코드: ${response.status}). ${delay}ms 후 재시도합니다...`);
+                    const response = await fetch(url, options);
+                    if (response.status === 429 && i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        console.warn(`429 Too Many Requests. Retrying in ${Math.ceil(delay / 1000)}s...`);
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        delay *= 2; 
-                    } else {
-                        const errorBody = await response.json();
-                        console.error('💥 복구 불가능한 API 에러:', errorBody); 
-                        throw new Error(`API error: ${errorBody.error?.message || response.status}`);
+                        continue;
                     }
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+                    }
+                    return response;
                 } catch (error) {
-                    console.error(`💥 API 호출 시도 ${i + 1}회 실패:`, error);
-                    if (i === retries - 1) {
+                    if (i === maxRetries - 1) {
                         throw error;
                     }
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    console.warn(`Fetch error: ${error.message}. Retrying in ${Math.ceil(delay / 1000)}s...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
                 }
             }
-            throw new Error('API 요청이 모든 재시도 후에도 실패했습니다.');
+        }
+        
+        /**
+         * LLM API 호출 및 응답 처리 공통 함수
+         * @param {string} prompt - 사용자 질의
+         * @param {string} systemPrompt - LLM 시스템 프롬프트
+         * @param {HTMLElement} outputElement - 결과를 표시할 DOM 요소
+         * @param {HTMLElement} buttonElement - 상태를 변경할 버튼 요소
+         * @param {string} loadingText - 로딩 시 표시할 텍스트
+         * @returns {Promise<Object>} LLM 텍스트와 소스 정보를 포함하는 객체
+         */
+        async function callGeminiApi(prompt, systemPrompt, outputElement, buttonElement, loadingText) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<div class="loading-animation mr-2"></div> ${loadingText}`;
+            outputElement.innerHTML = `
+                <div class="flex items-center justify-center p-8">
+                    <div class="loading-animation mr-3"></div>
+                    <p class="text-gray-600">${loadingText} 중입니다. 잠시만 기다려 주세요...</p>
+                </div>
+            `;
+
+            const userQuery = `첨부된 문서("파생상품시장 업무규정.pdf", "파생상품시장 업무규정 시행세칙.pdf")를 참고하여 다음 요청을 처리해 주세요: ${prompt}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            };
+
+            let llmText = "";
+            let sources = [];
+            
+            try {
+                const response = await fetchWithBackoff(apiUrl, options);
+                const result = await response.json();
+
+                const candidate = result.candidates?.[0];
+
+                if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    throw new Error("API 응답 구조가 유효하지 않거나 내용이 비어 있습니다.");
+                }
+
+                llmText = candidate.content.parts[0].text;
+
+                const groundingMetadata = candidate.groundingMetadata;
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    sources = groundingMetadata.groundingAttributions
+                        .map(attribution => ({
+                            uri: attribution.web?.uri,
+                            title: attribution.web?.title,
+                            snippet: attribution.web?.snippet,
+                            fileName: attribution.document?.title || (attribution.web?.title.includes('파생상품시장 업무규정') ? '파생상품시장 업무규정.pdf' : '파생상품시장 업무규정 시행세칙.pdf'),
+                        }))
+                        .filter(source => source.fileName);
+                }
+                
+                return { llmText, sources };
+
+            } catch (error) {
+                 outputElement.innerHTML = `
+                    <p class="text-red-500 font-bold mb-2">오류 발생!</p>
+                    <p class="text-gray-600">오류 메시지: ${error.message}</p>
+                    <p class="text-gray-600 mt-2">잠시 후 다시 시도해 주세요.</p>
+                `;
+                return { llmText: null, sources: null };
+            } finally {
+                // 이 함수를 호출한 곳에서 버튼 상태를 다시 설정합니다.
+            }
         }
 
-        function showStatus(message, color) {
-            docStatus.textContent = message;
-            const colorClasses = { red: 'text-red-500', green: 'text-green-600', blue: 'text-blue-600' };
-            docStatus.className = `text-center text-sm font-medium h-5 ${colorClasses[color] || ''}`;
+
+        // 1. 키워드 검색 기능 (기존 로직 유지 및 상세 설명 버튼 제거)
+        async function searchDocuments() {
+            const keyword = keywordInput.value.trim();
+            if (!keyword) {
+                resultOutput.innerHTML = '<p class="text-red-500 font-bold">검색 키워드를 입력해 주세요!</p>';
+                return;
+            }
+
+            // UI 상태 변경
+            searchButton.disabled = true;
+            searchButton.innerHTML = `<div class="loading-animation mr-2"></div> 검색 중...`;
+            
+            const result = await callGeminiApi(
+                `"${keyword}"에 대해 검색하고, 그 내용을 상세히 정리해서 보여줘.`, 
+                SEARCH_SYSTEM_PROMPT, 
+                resultOutput, 
+                searchButton, 
+                `업로드된 파일에서 "${keyword}"(으)로 내용을 검색`
+            );
+
+            // UI 상태 초기화
+            searchButton.disabled = false;
+            searchButton.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> 검색 시작`;
+            
+            if (!result.llmText) return;
+
+            // 결과 표시
+            let outputHtml = `<div class="markdown-output">${renderMarkdown(result.llmText)}</div>`;
+            
+            // 상세 설명 버튼 제거됨 (요청 반영)
+            
+            if (result.sources && result.sources.length > 0) {
+                outputHtml += `
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">참조된 문서 내용</h3>
+                        <div class="flex flex-wrap">
+                `;
+                result.sources.forEach(source => {
+                    outputHtml += `
+                        <span class="file-citation shadow-sm">
+                            <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>${source.fileName}</span>
+                        </span>
+                    `;
+                });
+                outputHtml += `</div></div>`;
+            } else {
+                outputHtml += `
+                    <div class="mt-4 text-sm text-gray-500">
+                        <p>검색된 내용이 없거나, 답변 구성에 직접적으로 참조된 구체적인 문서 출처가 없습니다. 키워드를 변경하여 다시 검색해 보세요.</p>
+                    </div>
+                `;
+            }
+
+            resultOutput.innerHTML = outputHtml;
+            
+            // 상세 설명 버튼 클릭 이벤트 리스너도 제거됨
         }
+        
+        // REMOVED explainDetails function
+        
+        // 2. Q&A 기능 추가 (라인 번호를 맞추기 위해 3에서 2로 변경)
+        async function submitQna() {
+            const question = qnaInput.value.trim();
+            if (!question) {
+                qnaOutput.innerHTML = '<p class="text-red-500 font-bold">질문 내용을 입력해 주세요!</p>';
+                return;
+            }
+
+            // LLM 호출 (시스템 프롬프트 변경)
+            const result = await callGeminiApi(
+                question, 
+                QNA_SYSTEM_PROMPT, 
+                qnaOutput, 
+                qnaButton, 
+                `질문에 대한 답변을 생성`
+            );
+            
+            // UI 상태 초기화
+            qnaButton.disabled = false;
+            qnaButton.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.228a4.242 4.242 0 015.996 0M12 16h.01M12 21a9 9 0 110-18 9 9 0 010 18z"></path></svg> 질문하기`;
+
+            if (result.llmText) {
+                let outputHtml = `<div class="markdown-output">${renderMarkdown(result.llmText)}</div>`;
+                 
+                if (result.sources && result.sources.length > 0) {
+                    outputHtml += `<div class="mt-3 text-xs text-gray-500">참조: ${result.sources.map(s => s.fileName).join(', ')}</div>`;
+                }
+                
+                qnaOutput.innerHTML = outputHtml;
+            }
+        }
+
+        // 이벤트 리스너 설정
+        searchButton.addEventListener('click', searchDocuments);
+        keywordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchDocuments();
+            }
+        });
+        
+        qnaButton.addEventListener('click', submitQna);
+        qnaInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitQna();
+            }
+        });
     </script>
 </body>
 </html>
-
