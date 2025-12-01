@@ -141,15 +141,14 @@
     </footer>
 
     <script type="module">
-        // Gemini API 호출을 위한 기본 설정
-        const apiKey = "AIzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // Canvas 환경에서 자동 주입
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        // Gemini API 호출을 위한 기본 설정 (최신 모델로 업데이트됨)
+        const apiKey = "AlzaSyDfpal-sPS5EeCLYrvmeVnc_sA69L_EQ8M"; // 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
         // DOM 요소 정의
         const keywordInput = document.getElementById('keywordInput');
         const searchButton = document.getElementById('searchButton');
         const resultOutput = document.getElementById('resultOutput');
-        // const detailExplanationArea = document.getElementById('detailExplanationArea'); // REMOVED
         const qnaInput = document.getElementById('qnaInput');
         const qnaButton = document.getElementById('qnaButton');
         const qnaOutput = document.getElementById('qnaOutput');
@@ -175,8 +174,6 @@
 * **적용 예시**: [내용 설명 및 관련 파일 인용]
 `;
         
-        // REMOVED DETAIL_EXPLAIN_PROMPT
-
         // LLM 시스템 프롬프트 정의 (Q&A)
         const QNA_SYSTEM_PROMPT = `당신은 한국 파생상품 법규에 대한 질의응답 전문가입니다. 사용자의 질문을 바탕으로 제공된 첨부 파일(파생상품시장 업무규정, 파생상품시장 업무규정 시행세칙)을 검색하여 질문에 가장 정확하게 답변해야 합니다. 답변은 반드시 첨부 파일의 내용을 기반으로 작성해 주세요. 답변은 한국어 토스 문체로 친절하게 작성하고, 답변 말미에 관련 조항을 언급해 주세요.`;
 
@@ -304,7 +301,7 @@
         }
 
 
-        // 1. 키워드 검색 기능 (기존 로직 유지 및 상세 설명 버튼 제거)
+        // 1. 키워드 검색 기능
         async function searchDocuments() {
             const keyword = keywordInput.value.trim();
             if (!keyword) {
@@ -333,8 +330,6 @@
             // 결과 표시
             let outputHtml = `<div class="markdown-output">${renderMarkdown(result.llmText)}</div>`;
             
-            // 상세 설명 버튼 제거됨 (요청 반영)
-            
             if (result.sources && result.sources.length > 0) {
                 outputHtml += `
                     <div class="mt-6 pt-4 border-t border-gray-200">
@@ -359,13 +354,9 @@
             }
 
             resultOutput.innerHTML = outputHtml;
-            
-            // 상세 설명 버튼 클릭 이벤트 리스너도 제거됨
         }
         
-        // REMOVED explainDetails function
-        
-        // 2. Q&A 기능 추가 (라인 번호를 맞추기 위해 3에서 2로 변경)
+        // 2. Q&A 기능
         async function submitQna() {
             const question = qnaInput.value.trim();
             if (!question) {
@@ -414,3 +405,4 @@
     </script>
 </body>
 </html>
+
